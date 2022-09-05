@@ -1,0 +1,7 @@
+FROM python:slim-buster
+RUN pip install flask --no-cache-dir && \
+    mkdir -p /usr/src/app
+
+EXPOSE 5000
+ADD . /usr/src/app/
+ENTRYPOINT ["python", "/usr/src/app/server.py"]

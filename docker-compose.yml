@@ -1,0 +1,90 @@
+version: '3'
+x-training-common:
+    &training-common
+    networks:
+        - training
+    restart: unless-stopped
+    logging:
+        driver: syslog
+        options:
+            syslog-address: tcp://192.168.0.111:50000
+            syslog-facility: daemon
+
+services:
+    nginx:
+        <<: *training-common
+        image: nginx:stable
+        volumes:
+            - ${PWD}/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+            - ${PWD}/nginx/conf.d:/etc/nginx/conf.d:ro
+        ports:
+            - "8443:443"
+        depends_on:
+            - dbms
+            - departments
+            - employees
+            - blackbox-exporter
+            - prometheus
+    blackbox-exporter:
+        <<: *training-common
+        image: prom/blackbox-exporter:latest
+        volumes:
+            - ${PWD}/monitoring/blackbox-exporter.yml:/etc/blackbox_exporter/config.yml:ro
+    prometheus:
+        <<: *training-common
+        image: prom/prometheus:latest
+        volumes:
+            - ${PWD}/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+            - ${PWD}/monitoring/alert.rules.yml:/etc/prometheus/alert.rules.yml:ro
+        command:
+            - --config.file=/etc/prometheus/prometheus.yml
+            - --web.external-url=http://localhost:8080/prometheus
+            - --storage.tsdb.retention.time=1w
+            - --web.enable-lifecycle
+        depends_on:
+            - blackbox-exporter
+        # grafana:
+        #     <<: *training-common
+        #     image: grafana/grafana:7.3.2
+        #     volumes:
+        #         - $PWD/health/grafana/config/grafana.ini:/etc/grafana/grafana.ini:ro
+    dbms:
+        <<: *training-common
+        image: dbms:latest
+        build:
+            context: ./dbms-ms
+        volumes:
+            - dbms_training:/opt/dbms
+        environment:
+            - DBMS_HOME=/opt/dbms
+    departments:
+        <<: *training-common
+        image: departments:latest
+        build:
+            context: ./department-ms
+        volumes:
+            - departments_training:/opt/departments
+        environment:
+            - DEPT_HOME=/opt/departments
+            - DBMS_URI=http://dbms:5000/dbms
+    employees:
+        <<: *training-common
+        image: employees:latest
+        build:
+            context: ./employees-ms
+        volumes:
+            - employees_training:/opt/employees
+        environment:
+            - EMP_HOME=/opt/employees
+            - DBMS_URI=http://dbms:5000/dbms
+            - DEPT_URI=http://departments:5000/departments
+
+networks:
+    training:
+        external: false
+        name: training-network
+
+volumes:
+    dbms_training:
+    departments_training:
+    employees_training:
