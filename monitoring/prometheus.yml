@@ -15,6 +15,7 @@ scrape_configs:
        - https://nginx:443/dbms/status
        - https://nginx:443/departments/status
        - https://nginx:443/employees/status
+       - https://nginx:443/grafana/login
        - https://nginx:443
    relabel_configs:
      - source_labels: [__address__]
@@ -35,6 +36,7 @@ scrape_configs:
        - departments:5000
        - employees:5000
        - nginx:443
+       - grafana:3000
    relabel_configs:
      - source_labels: [__address__]
        target_label: __param_target
