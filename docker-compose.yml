@@ -43,11 +43,12 @@ services:
             - --web.enable-lifecycle
         depends_on:
             - blackbox-exporter
-        # grafana:
-        #     <<: *training-common
-        #     image: grafana/grafana:7.3.2
-        #     volumes:
-        #         - $PWD/health/grafana/config/grafana.ini:/etc/grafana/grafana.ini:ro
+    grafana:
+        <<: *training-common
+        image: grafana/grafana:7.3.2
+        environment:
+            - GF_SERVER_ROOT_URL=%(protocol)s://%(domain)s:%(http_port)s/grafana/
+            - GF_SERVER_SERVE_FROM_SUB_PATH=true
     dbms:
         <<: *training-common
         image: dbms:latest
